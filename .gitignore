@@ -3,3 +3,9 @@ perf.data
 perf.data.old
 .vscode
 .gdb_history
+semantics/amd-3900x.json
+semantics/amd-7700x.json
+semantics/i9-13900-e.json
+semantics/i9-13900-p.json
+semantics/intel-xeon-silver-4110.json
+semantics/semantics.7z

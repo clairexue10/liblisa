@@ -75,7 +75,7 @@ impl<A: Arch, C> EncodingWithFilters<A, C> {
 #[serde(bound(serialize = "C: Serialize", deserialize = "C: Deserialize<'de>"))]
 pub struct Encoding<A: Arch, C> {
     /// The bitpattern
-    pub bits: Vec<Bit>,
+    pub bits: Vec<Bit>, //input var. //bit is in encoding/bitpattern/mod.rs
 
     /// `errors[N]` is true if the analysis for `bits[N]` produced an error, and the correct [`Bit`] was inferred from context.
     pub errors: Vec<bool>,

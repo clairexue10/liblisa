@@ -15,6 +15,7 @@ use liblisa::semantics::default::codegen::sexpr::{SExpr, SExprCodeGen};
 use liblisa::semantics::default::computation::SynthesizedComputation;
 use log::info;
 use serde::{Deserialize, Serialize};
+//use liblisa::claire::helpers::BitPattern; //where all claire's helper functions are
 
 /// Allows you to query semantics via stdin/stdout.
 ///
@@ -211,6 +212,7 @@ struct Data<A: Arch> {
 
 fn build_filter_map<A: Arch>(encodings: &Path) -> Data<A> {
     eprintln!("Reading...");
+    dbg!("hiihi");
     let encodings: Vec<Encoding<A, SynthesizedComputation>> =
         serde_json::from_reader(BufReader::new(File::open(encodings).unwrap())).unwrap();
 
@@ -265,21 +267,51 @@ impl Server {
         eprintln!("That took {}ms", start.elapsed().as_millis());
         eprintln!("Ready!");
 
-        let stdin = std::io::stdin();
+        let stdin = std::io::stdin(); //assume the input is direclty bitpattern
         let mut buf = String::new();
 
         while stdin.read_line(&mut buf).is_ok() {
-            let instr = Instruction::from_str(&buf).unwrap();
+            //input = hex
+            //let instr = Instruction::from_str(&buf).unwrap(); //
+            
+            //input = bin
+            let trimmed = buf.trim();
+            dbg!(trimmed);
+            if trimmed.is_empty() { 
+                break; 
+            }
 
-            let result = map.map.filters(&instr).map(|&index| &map.encodings[index]);
+            let bytes: Vec<u8> = trimmed
+                .as_bytes()
+                .chunks(8)
+                .map(|chunk| {
+                    let s = std::str::from_utf8(chunk).unwrap();
+                    u8::from_str_radix(s, 2).unwrap()
+                })
+                .collect();
+
+            let instr = Instruction::new(&bytes);
+            dbg!(instr);
+            
+
+            //input = bitpattern
+            //let bit_pattern = parse_str_to_bit(&buf) //the output should be a bit pattern in Vec<Bit> form
+
+            let result = map.map.filters(&instr).map(|&index| &map.encodings[index]); //fn filters'def is in encoding/mod.rs
             if let Some(e) = result {
                 info!("Matched encoding: {e}");
             }
-
             let result = result.map(|encoding: &Encoding<_, _>| {
-                let parts = encoding.extract_parts(&instr);
-                encoding.instantiate(&parts).unwrap()
+                let parts = encoding.extract_parts(&instr); //extract_parts is in encoding/mod.rs
+                let dataflow = encoding.instantiate(&parts).unwrap(); //instantiate is in encoding/mod.rs
+                dbg!(&encoding.bits);
+                dbg!(&encoding);
+                dbg!(&dataflow);
+                dataflow
             });
+            
+            
+
             let result = result.and_then(|dataflow: Dataflows<_, _>| {
                 if dataflow.output_dataflows().any(|o| o.computation.is_none()) {
                     None
