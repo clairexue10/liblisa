@@ -15,6 +15,10 @@ use liblisa::semantics::default::codegen::sexpr::{SExpr, SExprCodeGen};
 use liblisa::semantics::default::computation::SynthesizedComputation;
 use log::info;
 use serde::{Deserialize, Serialize};
+
+use liblisa::instr::InstructionFilter;
+use liblisa::arch::x64::X64Arch;
+use liblisa::semantics::Computation;
 //use liblisa::claire::helpers::BitPattern; //where all claire's helper functions are
 
 /// Allows you to query semantics via stdin/stdout.
@@ -231,6 +235,25 @@ fn build_filter_map<A: Arch>(encodings: &Path) -> Data<A> {
     }
 }
 
+
+fn bitpattern_to_symbolic_encoding<A: Arch, C: Computation + Clone + Debug>(
+    pattern: &str,
+    encoding: Option<&Encoding<A, C>>,
+) {
+    match encoding {
+        Some(encoding) => {
+            // Keep all parts symbolic
+            let symbolic = encoding
+                .instantiate_partially(&vec![None; encoding.parts.len()])
+                .unwrap();
+
+            println!("{}", symbolic);
+        }
+        None => println!("No matching encoding found for pattern: {}", pattern),
+    }
+}
+
+
 impl Server {
     pub fn run<A: Arch + schemars::JsonSchema>(&self)
     where
@@ -275,12 +298,18 @@ impl Server {
             //let instr = Instruction::from_str(&buf).unwrap(); //
             
             //input = bin
-            let trimmed = buf.trim();
+            let trimmed = buf.trim();  //image if this is bitpattern
             dbg!(trimmed);
             if trimmed.is_empty() { 
                 break; 
             }
 
+            /*
+            let possibilities: Vec<Vec<8>> = trimmed
+                .as_bytes()
+                .map(|&index| if &trimmed[index]!= '0' || &trimmed[index]!='1')
+            */
+        
             let bytes: Vec<u8> = trimmed
                 .as_bytes()
                 .chunks(8)
@@ -289,14 +318,12 @@ impl Server {
                     u8::from_str_radix(s, 2).unwrap()
                 })
                 .collect();
-
             dbg!(&bytes);
             let instr = Instruction::new(&bytes);
             dbg!(&instr);
             dbg!(std::any::type_name_of_val(&trimmed));
             dbg!(std::any::type_name_of_val(&instr));
-            
-
+        
             //input = bitpattern
             //let bit_pattern = parse_str_to_bit(&buf) //the output should be a bit pattern in Vec<Bit> form
 
@@ -304,20 +331,27 @@ impl Server {
             if let Some(e) = result {
                 info!("Matched encoding: {e}");
             }
+
+            let symbolic = bitpattern_to_symbolic_encoding("01001b_a 00000001 11bbbaaa", result);
+            dbg!(result);
             //dbg!(result.Encoding);
+            /*
             let result = result.map(|encoding: &Encoding<_, _>| {
                 let parts = encoding.extract_parts(&instr); //extract_parts is in encoding/mod.rs
-                let dataflow = encoding.instantiate(&parts).unwrap(); //instantiate is in encoding/mod.rs
+                // Keep all parts as variables (nothing fixed)
+                let symbolic = encoding.instantiate_partially(&[None, None, None, None, None, None, None, None, None, None, None, Some(0), Some(0), Some(0), Some(1),Some(1),Some(1),Some(1),Some(0), Some(0), Some(0),Some(0), Some(0), Some(1),None,None,Some(1),Some(0), Some(0), Some(1),Some(0)]);
+                //let dataflow = encoding.instantiate_partially(&parts).unwrap(); //instantiate is in encoding/mod.rs
                 dbg!(&parts);
                 dbg!(&encoding.bits);
                 dbg!(&encoding);
-                dbg!(&dataflow);
-                dataflow
+                //dbg!(&dataflow);
+                //dataflow
+                dbg!(&symbolic);
             });
-            
-            
-
-            let result = result.and_then(|dataflow: Dataflows<_, _>| {
+            8?
+            */
+            /*
+            let result = result.and_then(|dataflow: Dataflows<_, _>|{
                 if dataflow.output_dataflows().any(|o| o.computation.is_none()) {
                     None
                 } else {
@@ -376,6 +410,7 @@ impl Server {
                     }
                 }
             }
+            */
 
             buf.clear();
         }
