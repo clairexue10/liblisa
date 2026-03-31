@@ -401,7 +401,7 @@ impl<A: Arch, C> Encoding<A, C> {
             .iter()
             .enumerate()
             .flat_map(|(index, p)| match &p.mapping {
-                PartMapping::Register {
+                PartMapping::Register { //this is in encoding/bitpattern/mod.rs
                     locations: _,
                     mapping,
                 } if mapping.iter().any(Option::is_none) => {

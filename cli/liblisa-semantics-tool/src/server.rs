@@ -290,20 +290,25 @@ impl Server {
                 })
                 .collect();
 
+            dbg!(&bytes);
             let instr = Instruction::new(&bytes);
-            dbg!(instr);
+            dbg!(&instr);
+            dbg!(std::any::type_name_of_val(&trimmed));
+            dbg!(std::any::type_name_of_val(&instr));
             
 
             //input = bitpattern
             //let bit_pattern = parse_str_to_bit(&buf) //the output should be a bit pattern in Vec<Bit> form
 
-            let result = map.map.filters(&instr).map(|&index| &map.encodings[index]); //fn filters'def is in encoding/mod.rs
+            let result = map.map.filters(&instr).map(|&index| &map.encodings[index]); //map is an instance of filterMap, filter is implemented on filterMap, in encoding/instr/map.rs
             if let Some(e) = result {
                 info!("Matched encoding: {e}");
             }
+            //dbg!(result.Encoding);
             let result = result.map(|encoding: &Encoding<_, _>| {
                 let parts = encoding.extract_parts(&instr); //extract_parts is in encoding/mod.rs
                 let dataflow = encoding.instantiate(&parts).unwrap(); //instantiate is in encoding/mod.rs
+                dbg!(&parts);
                 dbg!(&encoding.bits);
                 dbg!(&encoding);
                 dbg!(&dataflow);
