@@ -322,8 +322,6 @@ impl Server {
             let instr = Instruction::new(&bytes);
             dbg!(instr);
             
-
->>>>>>> parent of 305a7e1 (before bitpattern changes)
             //input = bitpattern
             //let bit_pattern = parse_str_to_bit(&buf) //the output should be a bit pattern in Vec<Bit> form
 
@@ -336,13 +334,11 @@ impl Server {
                 let dataflow = encoding.instantiate(&parts).unwrap(); //instantiate is in encoding/mod.rs
                 dbg!(&encoding.bits);
                 dbg!(&encoding);
-                //dbg!(&dataflow);
-                //dataflow
-                dbg!(&symbolic);
+                dbg!(&dataflow);
+                dataflow
+                //dbg!(&symbolic);
             });
-            8?
-            */
-            /*
+            
             let result = result.and_then(|dataflow: Dataflows<_, _>|{
                 if dataflow.output_dataflows().any(|o| o.computation.is_none()) {
                     None
@@ -402,7 +398,6 @@ impl Server {
                     }
                 }
             }
-            */
 
             buf.clear();
         }
