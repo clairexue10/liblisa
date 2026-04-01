@@ -326,6 +326,7 @@ impl Server {
 
             let instr = Instruction::new(&bytes);
             dbg!(instr);
+            dbg!(instr);
             
 
 >>>>>>> parent of 305a7e1 (before bitpattern changes)
@@ -347,7 +348,6 @@ impl Server {
                 let symbolic = encoding.instantiate_partially(&[None, None, None, None, None, None, None, None, None, None, None, Some(0), Some(0), Some(0), Some(1),Some(1),Some(1),Some(1),Some(0), Some(0), Some(0),Some(0), Some(0), Some(1),None,None,Some(1),Some(0), Some(0), Some(1),Some(0)]);
                 //let dataflow = encoding.instantiate_partially(&parts).unwrap(); //instantiate is in encoding/mod.rs
                 dbg!(&parts);
-            //dbg!(result.Encoding);
             let result = result.map(|encoding: &Encoding<_, _>| {
                 let parts = encoding.extract_parts(&instr); //extract_parts is in encoding/mod.rs
                 let dataflow = encoding.instantiate(&parts).unwrap(); //instantiate is in encoding/mod.rs
