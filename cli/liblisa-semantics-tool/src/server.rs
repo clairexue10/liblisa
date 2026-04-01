@@ -333,9 +333,10 @@ impl Server {
                 let parts = encoding.extract_parts(&instr); //extract_parts is in encoding/mod.rs
                 let dataflow = encoding.instantiate(&parts).unwrap(); //instantiate is in encoding/mod.rs
                 dbg!(&encoding.bits);
+                dbg!(&encoding.parts);
                 dbg!(&encoding);
                 dbg!(&dataflow);
-                dataflow
+                dataflow //this is a collection of dataflows
                 //dbg!(&symbolic);
             });
             
@@ -344,7 +345,7 @@ impl Server {
                     None
                 } else {
                     Some(Repr {
-                        memory: dataflow
+                        memory: dataflow //this is a collection of dataflows
                             .addresses
                             .iter()
                             .map(|access| AccessRepr {
