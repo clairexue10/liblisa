@@ -318,14 +318,8 @@ impl Server {
                     u8::from_str_radix(s, 2).unwrap()
                 })
                 .collect();
-<<<<<<< HEAD
-            let instr = Instruction::new(&bytes);
-            dbg!(instr);
-        
-=======
 
             let instr = Instruction::new(&bytes);
-            dbg!(instr);
             dbg!(instr);
             
 
@@ -334,24 +328,12 @@ impl Server {
             //let bit_pattern = parse_str_to_bit(&buf) //the output should be a bit pattern in Vec<Bit> form
 
             let result = map.map.filters(&instr).map(|&index| &map.encodings[index]); //fn filters'def is in encoding/mod.rs
-            let result = map.map.filters(&instr).map(|&index| &map.encodings[index]); //fn filters'def is in encoding/mod.rs
             if let Some(e) = result {
                 info!("Matched encoding: {e}");
             }
-            let symbolic = bitpattern_to_symbolic_encoding("01001b_a 00000001 11bbbaaa", result);
-            dbg!(result);
-            //dbg!(result.Encoding);
-            /*
-            let result = result.map(|encoding: &Encoding<_, _>| {
-                let parts = encoding.extract_parts(&instr); //extract_parts is in encoding/mod.rs
-                // Keep all parts as variables (nothing fixed)
-                let symbolic = encoding.instantiate_partially(&[None, None, None, None, None, None, None, None, None, None, None, Some(0), Some(0), Some(0), Some(1),Some(1),Some(1),Some(1),Some(0), Some(0), Some(0),Some(0), Some(0), Some(1),None,None,Some(1),Some(0), Some(0), Some(1),Some(0)]);
-                //let dataflow = encoding.instantiate_partially(&parts).unwrap(); //instantiate is in encoding/mod.rs
-                dbg!(&parts);
             let result = result.map(|encoding: &Encoding<_, _>| {
                 let parts = encoding.extract_parts(&instr); //extract_parts is in encoding/mod.rs
                 let dataflow = encoding.instantiate(&parts).unwrap(); //instantiate is in encoding/mod.rs
->>>>>>> parent of 305a7e1 (before bitpattern changes)
                 dbg!(&encoding.bits);
                 dbg!(&encoding);
                 //dbg!(&dataflow);
