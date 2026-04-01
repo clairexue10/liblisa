@@ -19,7 +19,7 @@ mod counter;
 mod extended;
 mod filter;
 mod filter_mcs;
-mod map; //in liblisa/instr/map.rs
+mod map;
 mod set;
 mod tree;
 
