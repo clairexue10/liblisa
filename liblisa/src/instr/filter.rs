@@ -366,6 +366,8 @@ impl InstructionFilter {
                         bf.value |= 1 << i;
                     },
                     '_' => {},
+                    'a' => {}, //claire added this
+                    'b' => {}, //claire added this
                     _ => panic!(),
                 }
             }

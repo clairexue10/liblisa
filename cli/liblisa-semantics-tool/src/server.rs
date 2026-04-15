@@ -16,9 +16,9 @@ use liblisa::semantics::default::computation::SynthesizedComputation;
 use log::info;
 use serde::{Deserialize, Serialize};
 
-use liblisa::instr::InstructionFilter;
-use liblisa::arch::x64::X64Arch;
+use liblisa::encoding::bitpattern::Bit;
 use liblisa::semantics::Computation;
+use liblisa::instr::InstructionFilter;
 //use liblisa::claire::helpers::BitPattern; //where all claire's helper functions are
 
 /// Allows you to query semantics via stdin/stdout.
@@ -303,13 +303,31 @@ impl Server {
             if trimmed.is_empty() { 
                 break; 
             }
+            
+            let bitpattern = InstructionFilter::parse(&trimmed);
+            dbg!(&bitpattern);
+            let instr_smallest = bitpattern.smallest_matching_instruction();
+            let instr_largest = bitpattern.largest_matching_instruction();
 
+            dbg!(&instr_smallest);
+            dbg!(&instr_largest);
+
+            // Try both
+            let result = bitpattern.next_matching_instruction(&instr_smallest)
+                .and_then(|instr| map.map.filters(&instr).map(|&index| &map.encodings[index]));
+            dbg!(&result);
+            /*
+            let instr = InstructionFilter::smallest_matching_instruction(&bitpattern);
+            dbg!(&instr);
+            let result = map.map.filters(&instr).map(|&index| &map.encodings[index]); //fn filters'def is in encoding/mod.rs
+            //dbg!(&result);
+            */
             /*
             let possibilities: Vec<Vec<8>> = trimmed
                 .as_bytes()
                 .map(|&index| if &trimmed[index]!= '0' || &trimmed[index]!='1')
             */
-        
+            /*
             let bytes: Vec<u8> = trimmed
                 .as_bytes()
                 .chunks(8)
@@ -329,6 +347,22 @@ impl Server {
             if let Some(e) = result {
                 info!("Matched encoding: {e}");
             }
+            */
+            /*
+            if let Some(encoding) = result {
+                for (bit_index, bit) in encoding.bits.iter().enumerate() {
+                    match bit {
+                        Bit::Part(part_index) => {
+                            println!("Bit {} belongs to part {}", bit_index, part_index);
+                        }
+                        Bit::Fixed(v) => println!("Bit {} is fixed to {}", bit_index, v),
+                        Bit::DontCare => println!("Bit {} is don't care", bit_index),
+                    }
+                }
+            }
+            */
+           
+            /*
             let result = result.map(|encoding: &Encoding<_, _>| {
                 let parts = encoding.extract_parts(&instr); //extract_parts is in encoding/mod.rs
                 let dataflow = encoding.instantiate(&parts).unwrap(); //instantiate is in encoding/mod.rs
@@ -399,6 +433,7 @@ impl Server {
                     }
                 }
             }
+            */
 
             buf.clear();
         }
