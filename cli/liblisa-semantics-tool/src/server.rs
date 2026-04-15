@@ -298,13 +298,14 @@ impl Server {
             //let instr = Instruction::from_str(&buf).unwrap(); //
             
             //input = bin
-            let trimmed = buf.trim();  //image if this is bitpattern
-            dbg!(trimmed);
-            if trimmed.is_empty() { 
-                break; 
-            }
+            //let trimmed = buf.trim();  //image if this is bitpattern
+            //dbg!(trimmed);
+            //if trimmed.is_empty() { 
+                //break; 
+            //}
             
-            let bitpattern = InstructionFilter::parse(&trimmed);
+            //let bitpattern = InstructionFilter::parse(&trimmed);
+            let bitpattern = InstructionFilter::parse(&buf);
             dbg!(&bitpattern);
             let instr_smallest = bitpattern.smallest_matching_instruction();
             let instr_largest = bitpattern.largest_matching_instruction();
@@ -316,6 +317,11 @@ impl Server {
             let result = bitpattern.next_matching_instruction(&instr_smallest)
                 .and_then(|instr| map.map.filters(&instr).map(|&index| &map.encodings[index]));
             dbg!(&result);
+
+            //let result2 = map.map.filters(&instr_smallest).map(|&index| &map.encodings[index]);
+            //dbg!(&result2);
+            //let result3 = map.map.filters(&instr_largest).map(|&index| &map.encodings[index]);
+            //dbg!(&result3);
             /*
             let instr = InstructionFilter::smallest_matching_instruction(&bitpattern);
             dbg!(&instr);
@@ -362,7 +368,7 @@ impl Server {
             }
             */
            
-            /*
+            
             let result = result.map(|encoding: &Encoding<_, _>| {
                 let parts = encoding.extract_parts(&instr); //extract_parts is in encoding/mod.rs
                 let dataflow = encoding.instantiate(&parts).unwrap(); //instantiate is in encoding/mod.rs
@@ -433,7 +439,7 @@ impl Server {
                     }
                 }
             }
-            */
+         
 
             buf.clear();
         }
