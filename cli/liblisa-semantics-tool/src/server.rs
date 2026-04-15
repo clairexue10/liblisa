@@ -157,6 +157,7 @@ enum SourceRepr<A: Arch> {
     Dest(DestRepr<A>),
     Imm { index: usize },
     Const { value: u64, num_bits: usize },
+    Part(usize),    //newly added: whichever register part N encodes
 }
 
 impl<A: Arch> From<Source<A>> for SourceRepr<A> {
@@ -173,6 +174,7 @@ impl<A: Arch> From<Source<A>> for SourceRepr<A> {
                 value,
                 num_bits,
             },
+            Source::Part(n) => SourceRepr::Part(n),
         }
     }
 }
@@ -191,6 +193,7 @@ impl<A: Arch> From<SourceRepr<A>> for Source<A> {
                 value,
                 num_bits,
             },
+            SourceRepr::Part(n) => Source::Part(n),
         }
     }
 }
@@ -314,9 +317,9 @@ impl Server {
             dbg!(&instr_largest);
 
             // Try both
-            let result = bitpattern.next_matching_instruction(&instr_smallest)
+            let result1 = bitpattern.next_matching_instruction(&instr_smallest)
                 .and_then(|instr| map.map.filters(&instr).map(|&index| &map.encodings[index]));
-            dbg!(&result);
+            dbg!(&result1);
 
             //let result2 = map.map.filters(&instr_smallest).map(|&index| &map.encodings[index]);
             //dbg!(&result2);
@@ -368,9 +371,9 @@ impl Server {
             }
             */
            
-            
-            let result = result.map(|encoding: &Encoding<_, _>| {
-                let parts = encoding.extract_parts(&instr); //extract_parts is in encoding/mod.rs
+            /*
+            let result1 = result.map(|encoding: &Encoding<_, _>| {
+                let parts = encoding.extract_parts(&instr_smallest); //extract_parts is in encoding/mod.rs
                 let dataflow = encoding.instantiate(&parts).unwrap(); //instantiate is in encoding/mod.rs
                 dbg!(&encoding.bits);
                 dbg!(&encoding.parts);
@@ -379,8 +382,29 @@ impl Server {
                 dataflow //this is a collection of dataflows
                 //dbg!(&symbolic);
             });
-            
-            let result = result.and_then(|dataflow: Dataflows<_, _>|{
+
+            let result2 = result.map(|encoding: &Encoding<_, _>| {
+                let parts = encoding.extract_parts(&instr_largest); //extract_parts is in encoding/mod.rs
+                let dataflow = encoding.instantiate(&parts).unwrap(); //instantiate is in encoding/mod.rs
+                dbg!(&encoding.bits);
+                dbg!(&encoding.parts);
+                dbg!(&encoding);
+                dbg!(&dataflow);
+                dataflow //this is a collection of dataflows
+                //dbg!(&symbolic);
+            });
+
+            */
+            let result2 = result1.map(|encoding: &Encoding<_, _>| {
+                let dataflow = encoding.instantiate_symbolic().unwrap();
+                dbg!(&encoding.bits);
+                dbg!(&encoding.parts);
+                dbg!(&encoding);
+                dbg!(&dataflow);
+                dataflow
+            });
+
+            let result2 = result2.and_then(|dataflow: Dataflows<_, _>|{
                 if dataflow.output_dataflows().any(|o| o.computation.is_none()) {
                     None
                 } else {
@@ -424,9 +448,9 @@ impl Server {
                 }
             });
 
-            println!("{}", serde_json::to_string(&result).unwrap());
+            println!("{}", serde_json::to_string(&result2).unwrap());
             if self.debug {
-                if let Some(r) = result {
+                if let Some(r) = result2 {
                     for (index, item) in r.memory.iter().enumerate() {
                         eprintln!("  Addr[{index}] = {} + 0x{:X}", item.sum_of.iter().join(" + "), item.offset);
                     }
