@@ -308,10 +308,7 @@ impl Server {
             }
             
             let bitpattern = InstructionFilter::parse(&trimmed);
-<<<<<<< HEAD
             //let bitpattern = InstructionFilter::parse(&buf);
-=======
->>>>>>> parent of ed355a9 (working bp up to result)
             dbg!(&bitpattern);
             let instr_smallest = bitpattern.smallest_matching_instruction();
             let instr_largest = bitpattern.largest_matching_instruction();
@@ -322,16 +319,7 @@ impl Server {
             // Try both
             let result1 = bitpattern.next_matching_instruction(&instr_smallest)
                 .and_then(|instr| map.map.filters(&instr).map(|&index| &map.encodings[index]));
-<<<<<<< HEAD
-            dbg!(&result1);
-
-            //let result2 = map.map.filters(&instr_smallest).map(|&index| &map.encodings[index]);
-            //dbg!(&result2);
-            //let result3 = map.map.filters(&instr_largest).map(|&index| &map.encodings[index]);
-            //dbg!(&result3);
-=======
             dbg!(&result);
->>>>>>> parent of ed355a9 (working bp up to result)
             /*
             let instr = InstructionFilter::smallest_matching_instruction(&bitpattern);
             dbg!(&instr);
@@ -379,13 +367,8 @@ impl Server {
             */
            
             /*
-<<<<<<< HEAD
             let result1 = result.map(|encoding: &Encoding<_, _>| {
                 let parts = encoding.extract_parts(&instr_smallest); //extract_parts is in encoding/mod.rs
-=======
-            let result = result.map(|encoding: &Encoding<_, _>| {
-                let parts = encoding.extract_parts(&instr); //extract_parts is in encoding/mod.rs
->>>>>>> parent of ed355a9 (working bp up to result)
                 let dataflow = encoding.instantiate(&parts).unwrap(); //instantiate is in encoding/mod.rs
                 dbg!(&encoding.bits);
                 dbg!(&encoding.parts);
