@@ -193,6 +193,7 @@ impl<A: Arch, C> Dataflows<A, C> {
                         Source::Const {
                             value, ..
                         } => Value::Num(*value),
+                        Source::Part(n) => panic!("Cannot execute symbolic dataflow: Part({n}) is not resolved"),
                     })
                     .collect::<Vec<_>>();
                 let output = flow.computation.as_ref().unwrap().evaluate(&inputs);

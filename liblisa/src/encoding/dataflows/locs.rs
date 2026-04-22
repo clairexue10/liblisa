@@ -195,6 +195,7 @@ pub enum Source<A: Arch> {
         /// The bitsize of the constant value.
         num_bits: usize,
     },
+    Part(usize),    //newly added: whichever register part N encodes
 }
 
 impl<A: Arch> PartialEq<Location<A>> for Dest<A> {
@@ -223,7 +224,8 @@ impl<A: Arch> PartialEq<Location<A>> for Source<A> {
             Source::Imm(_)
             | Source::Const {
                 ..
-            } => false,
+            }
+            |Source::Part(_) => false, 
         }
     }
 }
@@ -238,7 +240,8 @@ impl<R: Register, A: Arch<Reg = R>> PartialEq<R> for Source<A> {
             }
             | Source::Dest {
                 ..
-            } => false,
+            } 
+            |Source::Part(_) => false,
         }
     }
 }
@@ -339,6 +342,7 @@ impl<A: Arch> Source<A> {
                 num_bits, ..
             } => Some(Size::new(0, (num_bits - 1) / 8)),
             Source::Imm(_) => None,
+            Source::Part(_) => None,
         }
     }
 
@@ -389,7 +393,8 @@ impl<A: Arch> Source<A> {
             Source::Imm(_)
             | Source::Const {
                 ..
-            } => false,
+            } 
+            |Source::Part(_) => false,
         }
     }
 
@@ -420,6 +425,7 @@ impl<A: Arch> Debug for Source<A> {
             Source::Const {
                 value, ..
             } => write!(f, "0x{value:X}"),
+            Source::Part(n) => write!(f, "Part({n})"),
         }
     }
 }
@@ -448,6 +454,7 @@ impl<A: Arch> Display for Source<A> {
             Source::Const {
                 value, ..
             } => write!(f, "0x{value:X}"),
+            Source::Part(n) => write!(f, "Part({n})"),
         }
     }
 }
@@ -547,7 +554,10 @@ impl<A: Arch> TryFrom<&Source<A>> for Location<A> {
             Source::Imm(_)
             | Source::Const {
                 ..
-            } => Err(()),
+            } 
+            | Source::Part(_)
+            => Err(()),
+
         }
     }
 }

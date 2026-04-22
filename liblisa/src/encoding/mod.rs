@@ -1189,6 +1189,7 @@ impl<A: Arch, C: Clone + Debug> Encoding<A, C> {
                 imm_value: u64,
             },
             Addr(AddressComputation),
+            SymbolicReg(usize), //added sybolic register for variables
             None,
         }
 
@@ -1358,6 +1359,251 @@ impl<A: Arch, C: Clone + Debug> Encoding<A, C> {
         Ok(dataflows)
     }
 
+
+
+
+
+    fn instantiate_dataflows_symbolic(
+        &self, part_values: &[Option<u64>], new_indices: &[Option<usize>],
+    ) -> Result<Dataflows<A, C>, InstantiationError> {
+        assert_eq!(
+            self.parts.len(),
+            part_values.len(),
+            "A value must be specified for every part"
+        );
+        assert!(
+            self.parts.len() <= MAX_PARTS,
+            "We can't handle more than MAX_PARTS={MAX_PARTS} parts"
+        );
+
+        let new_instr = self.part_values_to_instr(part_values);
+
+        for (value, part) in part_values.iter().zip(self.parts.iter()) {
+            let num_bits = part.size;
+            if let Some(value) = value {
+                if num_bits < 64 {
+                    if let PartMapping::Imm {
+                        mapping: Some(MappingOrBitOrder::BitOrder(_bit_order)),
+                        ..
+                    } = &part.mapping
+                    {
+                        // TODO
+                    } else {
+                        assert!(
+                            *value <= 1 << num_bits,
+                            "Part values: {part_values:X?} not valid for {self:?}; TODO: If this is a BitOrder, we should check if only bits present in the bit order are set instead..."
+                        );
+                    }
+
+                    if !part.mapping.value_is_valid(*value) {
+                        return Err(match part.mapping {
+                            PartMapping::Imm {
+                                ..
+                            } => InstantiationError::MissingImmValueMapping,
+                            PartMapping::MemoryComputation {
+                                ..
+                            } => InstantiationError::MissingMemoryComputationMapping,
+                            PartMapping::Register {
+                                ..
+                            } => InstantiationError::MissingRegisterMapping,
+                        })
+                    }
+                }
+            }
+        }
+
+        // Make sure MAX_PARTS isn't increased beyond the assumptions we make below
+        #[allow(clippy::assertions_on_constants)]
+        {
+            assert!(MAX_PARTS <= 64);
+        }
+
+        #[derive(Copy, Clone, Debug)]
+        enum Interp<R> {
+            Reg(R),
+            Const {
+                num_bits: usize,
+                mem_value: u64,
+                imm_value: u64,
+            },
+            Addr(AddressComputation),
+            SymbolicReg(usize), //added sybolic register for variables
+            None,
+        }
+
+        let mut missing_register_mapping = false;
+        let mut missing_imm_mapping = false;
+        let mut missing_mem_mapping = false;
+        let part_interp = self
+            .parts
+            .iter()
+            .zip(part_values.iter().copied())
+            .enumerate()
+            .map(|(part_index, (part, part_value))| {
+                if let Some(part_value) = part_value {
+                    match &part.mapping {
+                        PartMapping::Register {
+                            mapping, ..
+                        } => {
+                            let reg = if let Some(value) = &mapping[part_value as usize] {
+                                *value
+                            } else {
+                                missing_register_mapping = true;
+                                return Interp::None
+                            };
+
+                            Interp::Reg(reg)
+                        },
+                        PartMapping::Imm {
+                            mapping,
+                            bits,
+                            ..
+                        } => {
+                            // Correct for immediate value bits that we might have removed with remove_bits
+                            let imm_value = bits
+                                .as_ref()
+                                .map(|bits| bits.interpret_value(part_value))
+                                .unwrap_or(part_value);
+
+                            match mapping {
+                                Some(MappingOrBitOrder::Mapping(mapping)) => {
+                                    if mapping[part_value as usize].is_valid() {
+                                        Interp::Const {
+                                            mem_value: part_value,
+                                            imm_value,
+                                            num_bits: part.size,
+                                        }
+                                    } else {
+                                        missing_imm_mapping = true;
+                                        Interp::None
+                                    }
+                                },
+                                Some(MappingOrBitOrder::BitOrder(bit_order)) => {
+                                    let mem_value = bit_order.iter().enumerate().fold(0, |acc: u64, (index, bit)| {
+                                        acc.wrapping_add(bit.as_offset((part_value >> index) & 1))
+                                    });
+
+                                    Interp::Const {
+                                        mem_value,
+                                        imm_value,
+                                        num_bits: part.size,
+                                    }
+                                },
+                                _ => Interp::Const {
+                                    mem_value: part_value,
+                                    imm_value,
+                                    num_bits: part.size,
+                                },
+                            }
+                        },
+                        PartMapping::MemoryComputation {
+                            mapping, ..
+                        } => {
+                            if let Some(mapped_value) = mapping[part_value as usize] {
+                                Interp::Addr(mapped_value)
+                            } else {
+                                missing_mem_mapping = true;
+                                Interp::None
+                            }
+                        },
+                    }
+                } else {
+                    match &part.mapping {
+                        PartMapping::Register { .. } => Interp::SymbolicReg(part_index),
+                        _ => Interp::None,
+                    }
+                }
+            })
+            .collect::<ArrayVec<_, MAX_PARTS>>();
+
+        if missing_register_mapping {
+            return Err(InstantiationError::MissingRegisterMapping)
+        }
+
+        if missing_imm_mapping {
+            return Err(InstantiationError::MissingImmValueMapping);
+        }
+
+        if missing_mem_mapping {
+            return Err(InstantiationError::MissingMemoryComputationMapping);
+        }
+
+        let mut applicable_part = FlowValueLocationMap::new(self.dataflows.addresses.len(), self.dataflows.outputs.len());
+        for ((part, part_value), interp) in self.parts.iter().zip(part_values.iter().copied()).zip(part_interp.iter()) {
+            //if part_value.is_some() {
+                match &part.mapping {
+                    PartMapping::Register {
+                        locations, ..
+                    } => {
+                        for loc in locations {
+                            assert!(applicable_part.insert(*loc, interp).is_none());
+                        }
+                    },
+                    PartMapping::Imm {
+                        locations, ..
+                    } => {
+                        if part_value.is_some() {   //newly added imm still needs concrete value
+                            for loc in locations {
+                                assert!(applicable_part.insert(FlowValueLocation::from(*loc), interp).is_none());
+                            }
+                        }
+                    },
+                    PartMapping::MemoryComputation {
+                        ..
+                    } => (),
+                }
+            //}
+        }
+
+        let dataflows = self.dataflows.map(new_instr, |loc, old| {
+            let mut result = *old;
+
+            if let Some(&&interp) = applicable_part.get(loc) {
+                match interp {
+                    Interp::Reg(new_reg) => if let Source::Dest(Dest::Reg(reg, _)) = &mut result {
+                        *reg = new_reg;
+                    } else {
+                        panic!("Invalid encoding (at {loc:?} there should be a register): {self:?}");
+                    },
+                    Interp::SymbolicReg(idx)   => { result = Source::Part(idx); }, //newly added
+                    Interp::Const { num_bits, mem_value, imm_value } => if loc.is_address() {
+                        result = Source::Const { num_bits, value: mem_value };
+                    } else {
+                        result = Source::Const { num_bits, value: imm_value };
+                    },
+                    _ => unreachable!(),
+                }
+            } else if let Source::Imm(n) = &mut result {
+                if let Some(val) = new_indices[*n] {
+                    *n = val;
+                } else {
+                    // if new_indices[*n] is None, then it will be replaced with a Source::Const in the match above
+                    panic!("Encoding is not valid: {self:#?}; found {result:?} at {loc:?} which is not being remapped to a new index");
+                }
+            }
+
+            Some(result)
+        }, |memory_index, old_computation| {
+            for (part_index, (part, part_value)) in self.parts.iter().zip(part_values.iter().copied()).enumerate() {
+                if part_value.is_some() {
+                    if let PartMapping::MemoryComputation { memory_indexes, .. } = &part.mapping {
+                        if memory_indexes.contains(&memory_index) {
+                            match part_interp[part_index] {
+                                // TODO: Should we really copy the offset here?
+                                Interp::Addr(addr) => return Some(addr.with_offset(old_computation.offset)),
+                                _ => unreachable!(),
+                            }
+                        }
+                    }
+                }
+            }
+
+            None
+        });
+
+        Ok(dataflows)
+    }
+
     /// Instantiates the encoding with the provided part values.
     /// Returns the dataflows for the instruction that corresponds to these part values.
     ///
@@ -1367,6 +1613,23 @@ impl<A: Arch, C: Clone + Debug> Encoding<A, C> {
         let new_indices = Self::compute_new_indices(&part_values);
 
         self.instantiate_dataflows(&part_values, &new_indices)
+    }
+
+    pub fn instantiate_symbolic(&self) -> Result<Dataflows<A, C>, InstantiationError> {
+        // Pass None for register parts → they stay symbolic
+        // Pass Some(0) for Imm/MemoryComputation parts → concrete default
+        let part_values: ArrayVec<Option<u64>, MAX_PARTS> = self.parts
+            .iter()
+            .map(|part| match &part.mapping {
+                PartMapping::Register { .. } => None,   // symbolic
+                _                           => Some(0), // concrete
+            })
+            .collect();
+    
+        let new_indices = Self::compute_new_indices(&part_values);
+    
+        // same as instantiate_dataflows but handles SymbolicReg
+        self.instantiate_dataflows_symbolic(&part_values, &new_indices)
     }
 
     /// Iterates over covered instructions randomly.

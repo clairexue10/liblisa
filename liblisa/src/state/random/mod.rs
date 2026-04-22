@@ -554,6 +554,7 @@ impl<'a, A: Arch, M: MappableArea> StateGen<'a, A, M> {
                                     | Source::Const {
                                         ..
                                     } => {},
+                                    Source::Part(n) => panic!("Cannot generate random state for symbolic Part({n})"),
                                 }
                             }
 

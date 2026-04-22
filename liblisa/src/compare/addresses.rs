@@ -70,6 +70,7 @@ fn extract_addr_terms<'a, A: Arch>(
                     }
                 }
             },
+            Source::Part(n) => panic!("Symbolic Part({n}) cannot be used in address computation"),
             Source::Const {
                 value, ..
             } => offset = offset.wrapping_add(term.apply(*value)),
