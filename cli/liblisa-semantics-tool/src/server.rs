@@ -301,14 +301,14 @@ impl Server {
             //let instr = Instruction::from_str(&buf).unwrap(); //
             
             //input = bin
-            //let trimmed = buf.trim();  //image if this is bitpattern
-            //dbg!(trimmed);
-            //if trimmed.is_empty() { 
-                //break; 
-            //}
+            let trimmed = buf.trim();  //image if this is bitpattern
+            dbg!(trimmed);
+            if trimmed.is_empty() { 
+                break; 
+            }
             
-            //let bitpattern = InstructionFilter::parse(&trimmed);
-            let bitpattern = InstructionFilter::parse(&buf);
+            let bitpattern = InstructionFilter::parse(&trimmed);
+            //let bitpattern = InstructionFilter::parse(&buf);
             dbg!(&bitpattern);
             let instr_smallest = bitpattern.smallest_matching_instruction();
             let instr_largest = bitpattern.largest_matching_instruction();
