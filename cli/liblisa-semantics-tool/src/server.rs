@@ -17,6 +17,7 @@ use log::info;
 use serde::{Deserialize, Serialize};
 
 use liblisa::encoding::bitpattern::Bit;
+use liblisa::encoding::bitpattern::PartMapping;
 use liblisa::semantics::Computation;
 use liblisa::instr::InstructionFilter;
 //use liblisa::claire::helpers::BitPattern; //where all claire's helper functions are
@@ -158,6 +159,7 @@ enum SourceRepr<A: Arch> {
     Imm { index: usize },
     Const { value: u64, num_bits: usize },
     Part(usize),    //newly added: whichever register part N encodes
+    SymImm(usize),
 }
 
 impl<A: Arch> From<Source<A>> for SourceRepr<A> {
@@ -175,6 +177,7 @@ impl<A: Arch> From<Source<A>> for SourceRepr<A> {
                 num_bits,
             },
             Source::Part(n) => SourceRepr::Part(n),
+            Source::SymImm(n) => SourceRepr::SymImm(n),
         }
     }
 }
@@ -194,6 +197,7 @@ impl<A: Arch> From<SourceRepr<A>> for Source<A> {
                 num_bits,
             },
             SourceRepr::Part(n) => Source::Part(n),
+            SourceRepr::SymImm(n) => Source::SymImm(n),
         }
     }
 }
@@ -317,7 +321,7 @@ impl Server {
             dbg!(&instr_largest);
 
             // Try both
-            let result1 = bitpattern.next_matching_instruction(&instr_smallest)
+            let result = bitpattern.next_matching_instruction(&instr_smallest)
                 .and_then(|instr| map.map.filters(&instr).map(|&index| &map.encodings[index]));
             dbg!(&result);
             /*
@@ -377,20 +381,29 @@ impl Server {
                 dataflow //this is a collection of dataflows
                 //dbg!(&symbolic);
             });
+            */
 
-            let result2 = result.map(|encoding: &Encoding<_, _>| {
-                let parts = encoding.extract_parts(&instr_largest); //extract_parts is in encoding/mod.rs
-                let dataflow = encoding.instantiate(&parts).unwrap(); //instantiate is in encoding/mod.rs
-                dbg!(&encoding.bits);
-                dbg!(&encoding.parts);
-                dbg!(&encoding);
+            let result = result.map(|encoding: &Encoding<_, _>| {
+                //let parts = encoding.extract_parts(&instr_largest); //extract_parts is in encoding/mod.rs
+                //let dataflow = encoding.instantiate(&parts).unwrap(); //instantiate is in encoding/mod.rs
+                let part_values: Vec<Option<u64>> = encoding.parts.iter().map(|part| {
+                    match &part.mapping {
+                        PartMapping::Imm { .. } => None,   // keep symbolic
+                        _ => Some(part.value),             // use concrete value for registers etc.
+                    }
+                }).collect();
+                let dataflow =encoding.instantiate_partially(&part_values).unwrap().dataflows;
+
+                //dbg!(&encoding.bits);
+                //dbg!(&encoding.parts);
+                //dbg!(&encoding);
                 dbg!(&dataflow);
                 dataflow //this is a collection of dataflows
                 //dbg!(&symbolic);
             });
 
-            */
-            let result2 = result1.map(|encoding: &Encoding<_, _>| {
+            /*
+            let result = result.map(|encoding: &Encoding<_, _>| {
                 let dataflow = encoding.instantiate_symbolic().unwrap();
                 dbg!(&encoding.bits);
                 dbg!(&encoding.parts);
@@ -398,8 +411,9 @@ impl Server {
                 dbg!(&dataflow);
                 dataflow
             });
+            */
 
-            let result2 = result2.and_then(|dataflow: Dataflows<_, _>|{
+            let result = result.and_then(|dataflow: Dataflows<_, _>|{
                 if dataflow.output_dataflows().any(|o| o.computation.is_none()) {
                     None
                 } else {
@@ -443,9 +457,9 @@ impl Server {
                 }
             });
 
-            println!("{}", serde_json::to_string(&result2).unwrap());
+            println!("{}", serde_json::to_string(&result).unwrap());
             if self.debug {
-                if let Some(r) = result2 {
+                if let Some(r) = result {
                     for (index, item) in r.memory.iter().enumerate() {
                         eprintln!("  Addr[{index}] = {} + 0x{:X}", item.sum_of.iter().join(" + "), item.offset);
                     }
@@ -458,7 +472,7 @@ impl Server {
                     }
                 }
             }
-            */
+            
 
             buf.clear();
         }

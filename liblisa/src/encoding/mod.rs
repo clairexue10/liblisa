@@ -679,6 +679,7 @@ impl<A: Arch, C> Encoding<A, C> {
 
         if let Some(index) = self.dataflows.addresses.iter().position(|access| {
             access.inputs.iter().any(|s| match s {
+                
                 Source::Imm(n) => self.parts.get(*n).is_none(),
                 _ => false,
             })
@@ -1333,7 +1334,8 @@ impl<A: Arch, C: Clone + Debug> Encoding<A, C> {
                     *n = val;
                 } else {
                     // if new_indices[*n] is None, then it will be replaced with a Source::Const in the match above
-                    panic!("Encoding is not valid: {self:#?}; found {result:?} at {loc:?} which is not being remapped to a new index");
+                    //panic!("Encoding is not valid: {self:#?}; found {result:?} at {loc:?} which is not being remapped to a new index");
+                    result = Source::SymImm(*n);
                 }
             }
 

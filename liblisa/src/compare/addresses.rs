@@ -74,6 +74,7 @@ fn extract_addr_terms<'a, A: Arch>(
             Source::Const {
                 value, ..
             } => offset = offset.wrapping_add(term.apply(*value)),
+            Source::SymImm(n)=> panic!("Symbolic Part({n}) cannot be used in address computation"),
         }
     }
 

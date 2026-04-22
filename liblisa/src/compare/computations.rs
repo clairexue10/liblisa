@@ -519,6 +519,7 @@ impl ComputationEquivalence {
                     value, ..
                 } => inputs.push(OwnedValue::Num(*value)),
                 Source::Part(n) => panic!("Symbolic Part({n}) cannot be compared as a computation"),
+                Source::SymImm(n) => panic!("Symbolic Part({n}) cannot be compared as a computation"),
                 Source::Imm(part_index) => match &encoding.parts[*part_index].mapping {
                     PartMapping::Imm {
                         bits, ..

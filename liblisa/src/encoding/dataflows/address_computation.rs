@@ -672,6 +672,7 @@ impl AddressComputation {
                     other => panic!("Cannot handle: {other:?}"),
                 },
                 Source::Part(n) => panic!("Symbolic Part({n}) cannot be evaluated in address computation"),
+                Source::SymImm(n) => panic!("Symbolic Imm({n}) cannot be evaluated in address computation"),
                 Source::Const {
                     value, ..
                 } => *value,

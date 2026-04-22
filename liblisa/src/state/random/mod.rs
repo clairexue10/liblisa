@@ -555,6 +555,7 @@ impl<'a, A: Arch, M: MappableArea> StateGen<'a, A, M> {
                                         ..
                                     } => {},
                                     Source::Part(n) => panic!("Cannot generate random state for symbolic Part({n})"),
+                                    Source::SymImm(n) => panic!("Cannot generate random state for symbolic SymImm({n})"),
                                 }
                             }
 

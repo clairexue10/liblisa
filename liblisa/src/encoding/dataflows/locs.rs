@@ -196,6 +196,7 @@ pub enum Source<A: Arch> {
         num_bits: usize,
     },
     Part(usize),    //newly added: whichever register part N encodes
+    SymImm(usize),
 }
 
 impl<A: Arch> PartialEq<Location<A>> for Dest<A> {
@@ -226,6 +227,7 @@ impl<A: Arch> PartialEq<Location<A>> for Source<A> {
                 ..
             }
             |Source::Part(_) => false, 
+            |Source::SymImm(_) => false, 
         }
     }
 }
@@ -242,6 +244,7 @@ impl<R: Register, A: Arch<Reg = R>> PartialEq<R> for Source<A> {
                 ..
             } 
             |Source::Part(_) => false,
+            |Source::SymImm(_) => false, 
         }
     }
 }
@@ -343,6 +346,7 @@ impl<A: Arch> Source<A> {
             } => Some(Size::new(0, (num_bits - 1) / 8)),
             Source::Imm(_) => None,
             Source::Part(_) => None,
+            |Source::SymImm(_) => None,
         }
     }
 
@@ -395,6 +399,7 @@ impl<A: Arch> Source<A> {
                 ..
             } 
             |Source::Part(_) => false,
+            |Source::SymImm(_) => false,
         }
     }
 
@@ -426,6 +431,7 @@ impl<A: Arch> Debug for Source<A> {
                 value, ..
             } => write!(f, "0x{value:X}"),
             Source::Part(n) => write!(f, "Part({n})"),
+            Source::SymImm(n) => write!(f, "SymImm({n})"),
         }
     }
 }
@@ -455,6 +461,7 @@ impl<A: Arch> Display for Source<A> {
                 value, ..
             } => write!(f, "0x{value:X}"),
             Source::Part(n) => write!(f, "Part({n})"),
+            Source::SymImm(n) => write!(f, "SymImm({n})"),
         }
     }
 }
@@ -549,13 +556,15 @@ impl<A: Arch> TryFrom<&Source<A>> for Location<A> {
 
     #[inline]
     fn try_from(source: &Source<A>) -> Result<Self, Self::Error> {
-        match source {
+        
+         match source {
             Source::Dest(d) => Ok(d.into()),
             Source::Imm(_)
             | Source::Const {
                 ..
             } 
             | Source::Part(_)
+            | Source::SymImm(_)
             => Err(()),
 
         }
