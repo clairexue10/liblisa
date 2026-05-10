@@ -438,13 +438,14 @@ impl Server {
                                 offset: access.calculation.offset,
                             })
                             .collect(),
-                        write_targets: dataflow
+                        write_targets: dataflow //so this is where that does the transformation from interm result to final result
                             .outputs
                             .iter()
-                            .map(|output| {
+                            .map(|output| { //each output is a Dataflow
                                 let mut g = SExprCodeGen::new();
-                                let computation = output.computation.as_ref().unwrap();
-                                let computation = codegen_computation(&mut g, computation);
+                                let computation = output.computation.as_ref().unwrap(); //Option<C>.as_ref().unwrap(); //Option<&C>.unwrap(); &C
+                                dbg!(computation);
+                                let computation = codegen_computation(&mut g, computation); //g=SExprCodeGen::new();, computation=&C
 
                                 OutputRepr {
                                     write_target: output.target.into(),
@@ -456,7 +457,8 @@ impl Server {
                     })
                 }
             });
-
+            //dbg!(&result);
+            //println!(&result);
             println!("{}", serde_json::to_string(&result).unwrap());
             if self.debug {
                 if let Some(r) = result {
