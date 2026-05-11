@@ -26,6 +26,7 @@ pub mod arch_compare;
 pub mod merge;
 pub mod progress;
 pub mod server;
+pub mod isle;
 
 #[derive(Clone, Debug, clap::Parser)]
 enum Verb {

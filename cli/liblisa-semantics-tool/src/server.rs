@@ -13,6 +13,8 @@ use liblisa::instr::{FilterMap, Instruction};
 use liblisa::semantics::default::codegen::codegen_computation;
 use liblisa::semantics::default::codegen::sexpr::{SExpr, SExprCodeGen};
 use liblisa::semantics::default::computation::SynthesizedComputation;
+use liblisa::semantics::default::computation::OutputEncoding;
+use liblisa::semantics::IoType;
 use log::info;
 use serde::{Deserialize, Serialize};
 
@@ -20,6 +22,11 @@ use liblisa::encoding::bitpattern::Bit;
 use liblisa::encoding::bitpattern::PartMapping;
 use liblisa::semantics::Computation;
 use liblisa::instr::InstructionFilter;
+use liblisa::encoding::bitpattern::MappingOrBitOrder;
+
+//mod isle;
+use crate::isle::{generate_isle_spec};
+
 //use liblisa::claire::helpers::BitPattern; //where all claire's helper functions are
 
 /// Allows you to query semantics via stdin/stdout.
@@ -392,6 +399,7 @@ impl Server {
                         _ => Some(part.value),             // use concrete value for registers etc.
                     }
                 }).collect();
+                //let arg_names = derive_vars_from_encoding(&encoding);
                 let dataflow =encoding.instantiate_partially(&part_values).unwrap().dataflows;
 
                 //dbg!(&encoding.bits);
@@ -445,13 +453,21 @@ impl Server {
                                 let mut g = SExprCodeGen::new();
                                 let computation = output.computation.as_ref().unwrap(); //Option<C>.as_ref().unwrap(); //Option<&C>.unwrap(); &C
                                 dbg!(computation);
-                                let computation = codegen_computation(&mut g, computation); //g=SExprCodeGen::new();, computation=&C
+                                //let computation = codegen_computation(&mut g, computation); //g=SExprCodeGen::new();, computation=&C
 
+                                //now implement SynthesizedComputation to ISLE spec
+                                let arg_name_refs = vec!["r1","imm32"];   //manual example!!
+                                //let arg_name_refs: Vec<&str> = arg_names.iter().map(|s| s.as_str()).collect();
+                                let isle = generate_isle_spec(&arg_name_refs, &computation);
+                                println!("{}", isle);
+
+                                let computation = codegen_computation(&mut g, computation); //g=SExprCodeGen::new();, computation=&C
                                 OutputRepr {
                                     write_target: output.target.into(),
                                     inputs: output.inputs.iter().cloned().map_into().collect(),
                                     computation,
                                 }
+
                             })
                             .collect(),
                     })
