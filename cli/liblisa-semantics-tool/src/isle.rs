@@ -133,7 +133,7 @@ impl SmtExpr {
  
 /// Convert a liblisa Arg into a named SMT variable with the correct extension.
 /// `arg_names` maps architectural input index to variable name (e.g. ["r0", "r1"]).
-/*
+
 fn arg_to_smt(arg: &Arg, consts: &[i128], arg_names: &[&str]) -> SmtExpr {
     match arg {
         Arg::Input { index, num_bits, encoding } => {
@@ -156,7 +156,6 @@ fn arg_to_smt(arg: &Arg, consts: &[i128], arg_names: &[&str]) -> SmtExpr {
         },
     }
 }
-*/
  
 fn extend(raw: SmtExpr, num_bits: u32, encoding: ArgEncoding) -> SmtExpr {
     // For x86 register operands, LE == BE — no byte swap needed
